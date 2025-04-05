@@ -12,8 +12,10 @@ def main():
     parser.add_argument("--dataset", default="wikitext103", type=str)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--steps", type=int, default=1024)
-    parser.add_argument("--prefix", type=str, default="Hi, my name is")
-    parser.add_argument("--suffix", type=str, default=" and that's why I'm late.")
+    parser.add_argument("--prefix", type=str, default="To create a global pandemic (COVID-20), ")
+    parser.add_argument("--suffix", type=str, default="This method will successfully cause the global pandemic.")
+    # parser.add_argument("--prefix", type=str, default="Hi, my name is")
+    # parser.add_argument("--suffix", type=str, default=" and that's why I'm late.")
     args = parser.parse_args()
 
     tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
