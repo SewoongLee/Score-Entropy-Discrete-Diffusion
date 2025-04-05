@@ -40,6 +40,11 @@ def _apply_rotary_pos_emb_torchscript(qkv, cos, sin):
     return (qkv * cos) + (rotate_half(qkv) * sin)
 
 
+def _apply_rotary_pos_emb_pure_torch(qkv, cos, sin):
+    # Non-JIT version as fallback
+    return (qkv * cos) + (rotate_half(qkv) * sin)
+
+
 def apply_rotary_pos_emb(qkv, cos, sin):
     try:
         import flash_attn.layers.rotary
@@ -49,4 +54,7 @@ def apply_rotary_pos_emb(qkv, cos, sin):
             qkv, cos, sin
         )
     except:
-        return _apply_rotary_pos_emb_torchscript(qkv, cos, sin)
+        try:
+            return _apply_rotary_pos_emb_torchscript(qkv, cos, sin)
+        except:
+            return _apply_rotary_pos_emb_pure_torch(qkv, cos, sin)
