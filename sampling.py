@@ -93,6 +93,7 @@ class Denoiser:
 
     def update_fn(self, score_fn, x, t):
         sigma = self.noise(t)[0]
+        print('sigma', sigma)
 
         score = score_fn(x, sigma)
         stag_score = self.graph.staggered_score(score, sigma)
@@ -133,13 +134,19 @@ def get_pc_sampler(graph, noise, batch_dims, predictor, steps, denoise=True, eps
 
         for i in range(steps):
             t = timesteps[i] * torch.ones(x.shape[0], 1, device=device)
+            # print('noising', i, x.shape)
+            # print('noising before proj', x)
             x = projector(x)
+            # print('noising after  proj', x)
             x = predictor.update_fn(sampling_score_fn, x, t, dt)
             
 
         if denoise:
             # denoising step
+            print('denoising', i, x.shape)
+            # print('denoising before proj', x)
             x = projector(x)
+            # print('denoising after  proj', x)
             t = timesteps[-1] * torch.ones(x.shape[0], 1, device=device)
             x = denoiser.update_fn(sampling_score_fn, x, t)
             

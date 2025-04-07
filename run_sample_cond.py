@@ -18,7 +18,7 @@ def main():
     # parser.add_argument("--suffix", type=str, default=" and that's why I'm late.")
     args = parser.parse_args()
 
-    tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
+    tokenizer = GPT2TokenizerFast.from_pretrained('gpt2', clean_up_tokenization_spaces=True)
 
     prefix_ids = tokenizer(args.prefix).input_ids
     suffix_ids = tokenizer(args.suffix).input_ids
