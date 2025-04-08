@@ -1,3 +1,10 @@
+# Disclosure
+
+This repo is the reproduction of the following paper: [Discrete Diffusion Modeling by Estimating the Ratios of the Data Distribution
+](https://arxiv.org/abs/2310.16834) by [Aaron Lou](https://aaronlou.com), [Chenlin Meng](https://cs.stanford.edu/~chenlin/) and [Stefano Ermon](https://cs.stanford.edu/~ermon/).
+
+We reproduced this code for the team project of the course CS598 Deep Generative Models in UIUC by Professor Arindam Banerjee.
+
 # Score Entropy Discrete Diffusion
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
