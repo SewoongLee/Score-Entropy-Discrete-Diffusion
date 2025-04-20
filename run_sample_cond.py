@@ -5,9 +5,6 @@ from load_model import load_model
 from transformers import GPT2TokenizerFast
 import sampling
 
-import losses
-from model.utils import get_score_fn
-
 def main():
     parser = argparse.ArgumentParser(description="Generate some samples")
     parser.add_argument("--model_path", default="louaaron/sedd-medium", type=str)
