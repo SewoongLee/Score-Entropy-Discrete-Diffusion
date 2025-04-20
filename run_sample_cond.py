@@ -80,10 +80,6 @@ def main():
 
 
     input_ids = torch.tensor(input_ids, device="cuda")[None].repeat(args.batch_size, 1)
-    print('prefix_ids:', prefix_ids)
-    print('suffix_ids:', suffix_ids)
-    print('input_ids:', input_ids)
-    print('input_locs:', input_locs)
 
     def proj_fun(x):
         x[:, input_locs] = input_ids
