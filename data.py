@@ -124,7 +124,7 @@ def get_dataset(name, mode, cache_dir=None, block_size=1024, num_proc=8):
     elif name == "ptb":
         dataset = load_dataset("ptb_text_only", cache_dir=cache_dir, trust_remote_code=True)
     elif name == "lambada":
-        dataset = get_lambada_test_dataset(trust_remote_code=True)
+        dataset = get_lambada_test_dataset()
     else:
         dataset = load_dataset(name, cache_dir=cache_dir, trust_remote_code=True)
 
