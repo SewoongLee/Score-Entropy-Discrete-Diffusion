@@ -30,7 +30,7 @@ def compute_sedd_perplexity_on_dataset(
 
     dataset = get_dataset(
         name=dataset_name,
-        mode='validation',
+        mode='test',
         block_size=block_size
     )
     dataloader = DataLoader(dataset, batch_size=batch_size)
