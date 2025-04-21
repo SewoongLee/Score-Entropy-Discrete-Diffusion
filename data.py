@@ -118,15 +118,15 @@ def get_lambada_test_dataset():
 
 def get_dataset(name, mode, cache_dir=None, block_size=1024, num_proc=8):
     if name == "wikitext103":
-        dataset = load_dataset("wikitext", name="wikitext-103-raw-v1", cache_dir=cache_dir)
+        dataset = load_dataset("wikitext", name="wikitext-103-raw-v1", cache_dir=cache_dir, trust_remote_code=True)
     elif name == "wikitext2":
-        dataset = load_dataset("wikitext", name="wikitext-2-raw-v1", cache_dir=cache_dir)
+        dataset = load_dataset("wikitext", name="wikitext-2-raw-v1", cache_dir=cache_dir, trust_remote_code=True)
     elif name == "ptb":
-        dataset = load_dataset("ptb_text_only", cache_dir=cache_dir)
+        dataset = load_dataset("ptb_text_only", cache_dir=cache_dir, trust_remote_code=True)
     elif name == "lambada":
-        dataset = get_lambada_test_dataset()
+        dataset = get_lambada_test_dataset(trust_remote_code=True)
     else:
-        dataset = load_dataset(name, cache_dir=cache_dir)
+        dataset = load_dataset(name, cache_dir=cache_dir, trust_remote_code=True)
 
     if name == "lambada":
         data = dataset
