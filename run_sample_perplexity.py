@@ -5,23 +5,26 @@ from transformers import GPT2TokenizerFast, GPT2LMHeadModel
 import torch.nn.functional as F
 import sampling
 
+from datasets import load_dataset
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+
 
 def compute_perplexity(samples, eval_model):
     with torch.no_grad():
-        # logits: [batch, seq_len, vocab_size]
         # samples: [batch, seq_len]
+        # logits: [batch, seq_len, vocab_size]
         loss, logits = eval_model(samples, labels=samples)[:2]
-        logits = logits.transpose(-1, -2)  # -> [batch, vocab_size, seq_len]
+        logits = logits.transpose(-1, -2)  # [batch, seq_len, vocab_size] -> [batch, vocab_size, seq_len]
 
-        # Cross-entropy loss, per-token
-        loss = F.cross_entropy(
-            logits[..., :-1],  # pred
-            samples[..., 1:],  # true
-            reduction="none"
+         # Shift for GPT2-style next-token prediction
+        perplexity = F.cross_entropy(
+            logits[..., :-1],  # pred (shifted right)
+            samples[..., 1:],  # True (shifted left)
+            reduction="none"   # per-token
         )
-        sentence_level_loss = loss.mean(dim=-1)
-        perplexity = sentence_level_loss.exp().mean()
-        return perplexity.item()
+        perplexity = perplexity.mean(dim=-1).exp().mean()
+        return perplexity
 
 
 def main():
