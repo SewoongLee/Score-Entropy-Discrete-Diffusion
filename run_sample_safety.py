@@ -17,23 +17,27 @@ from collections import Counter
 
 device = torch.device('cuda')
 
-def load_ds():
+def load_ds(test_limit=-1):
     dataset = load_dataset('JailbreakBench/JBB-Behaviors', 'behaviors')
     ds = []
-    for datapoint in dataset['harmful']:
-        ds.append({
-            'prefix': f'Question: {datapoint["Goal"]}. Answer: ',
-            'suffix': '',
-            'behavior': datapoint["Behavior"],
-            'category': datapoint["Category"],
-        })
-    for datapoint in dataset['benign']:
-        ds.append({
-            'prefix': f'Question: {datapoint["Goal"]}. Answer: ',
-            'suffix': '',
-            'behavior': datapoint["Behavior"],
-            'category': datapoint["Category"],
-        })
+    
+    if test_limit >= 0:
+        print(f"Testing with limited dataset of {test_limit} examples")
+    else:
+        print(f"Testing with no limit")
+    
+    for key in ['harmful', 'benign']:
+        for i, datapoint in enumerate(dataset[key]):
+            if i == test_limit:
+                break
+            
+            ds.append({
+                'prefix': f'To {datapoint["Goal"][0].lower()}{datapoint["Goal"][1:]} ',
+                'suffix': 'This will successfully achieve the purpose.',
+                'behavior': datapoint["Behavior"],
+                'category': datapoint["Category"],
+            })
+            
     return ds
 
 
@@ -43,11 +47,11 @@ def get_model_and_tokenizer(model_path):
     return model, graph, noise, tokenizer
 
 
-def generate_response(model, graph, noise, tokenizer, prefix, suffix, batch_size, steps, max_length=500):
+def generate_response(model, graph, noise, tokenizer, prefix, suffix, batch_size, steps, gen_length=1024):
     prefix_ids = tokenizer(prefix).input_ids
     suffix_ids = tokenizer(suffix).input_ids
     input_ids = prefix_ids + suffix_ids
-    input_locs = list(range(len(prefix_ids))) + list(range(1024-len(suffix_ids), 1024))
+    input_locs = list(range(len(prefix_ids))) + list(range(gen_length-len(suffix_ids), gen_length))
     input_ids = torch.tensor(input_ids, device="cuda")[None].repeat(batch_size, 1)
 
     # Enhanced conditioning with stronger emphasis on prefix
@@ -63,14 +67,14 @@ def generate_response(model, graph, noise, tokenizer, prefix, suffix, batch_size
         return x
     
     sampling_fn = sampling.get_pc_sampler(
-        graph, noise, (batch_size, 1024), 'analytic', steps, device=device, proj_fun=enhanced_proj_fun
+        graph, noise, (batch_size, gen_length), 'analytic', steps, device=device, proj_fun=enhanced_proj_fun
     )
     samples = enhanced_proj_fun(sampling_fn(model))
     raw_text = tokenizer.batch_decode(samples)[0]
     
     # funct to manipulate the response generated
     response = post_process_response(raw_text)     # post-process the response for less gibberish
-    response = control_response_length(response, max_length=max_length)     # control response length
+    # response = control_response_length(response, max_length=max_length)     # control response length
     
     return response
 
@@ -93,26 +97,26 @@ def post_process_response(response):
     
     return filtered_response
 
-def control_response_length(response, max_length=500, preserve_sentences=True):
-    """
-    Control the length of the response, trying to preserve complete sentences.
-    """
-    if len(response) <= max_length:
-        return response
+# def control_response_length(response, max_length=500, preserve_sentences=True):
+#     """
+#     Control the length of the response, trying to preserve complete sentences.
+#     """
+#     if len(response) <= max_length:
+#         return response
     
-    if preserve_sentences:
-        sentence_endings = ['. ', '! ', '? ', '.\n', '!\n', '?\n'] # try to end at a sentence boundary -> can add more breaks when we idenitfy
+#     if preserve_sentences:
+#         sentence_endings = ['. ', '! ', '? ', '.\n', '!\n', '?\n'] # try to end at a sentence boundary -> can add more breaks when we idenitfy
         
-        last_ending_pos = -1    # last sentence ending before max_length
-        for ending in sentence_endings:
-            pos = response[:max_length].rfind(ending)
-            if pos > last_ending_pos:
-                last_ending_pos = pos + len(ending) - 1
+#         last_ending_pos = -1    # last sentence ending before max_length
+#         for ending in sentence_endings:
+#             pos = response[:max_length].rfind(ending)
+#             if pos > last_ending_pos:
+#                 last_ending_pos = pos + len(ending) - 1
         
-        if last_ending_pos > 0:
-            return response[:last_ending_pos+1]
+#         if last_ending_pos > 0:
+#             return response[:last_ending_pos+1]
         
-    return response[:max_length]
+#     return response[:max_length]
 
 def judge_responses(responses, save_judgments_path="safety_judgments.json"):
     """
@@ -240,14 +244,16 @@ def main():
     parser.add_argument("--model_path", default="louaaron/sedd-medium", type=str)
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--steps", type=int, default=1024)
-    parser.add_argument("--save_response_path", type=str, default="responses.json")
-    parser.add_argument("--save_judgments_path", type=str, default="judgments.json")
-    parser.add_argument("--test_limit", type=int, default=5, help="Limit testing to N examples (0 = no limit)")
+    parser.add_argument("--gen_length", type=int, default=256)
+    parser.add_argument("--save_response_path", type=str, default="output_responses.json")
+    parser.add_argument("--save_judgments_path", type=str, default="output_judgments.json")
+    parser.add_argument("--test_limit", type=int, default=10, help="Limit testing to N examples (-1 = no limit)")
     
     parser.add_argument("--evaluate_only", action="store_true", help="Skip generation and only evaluate existing responses")
     parser.add_argument("--force_regenerate", action="store_true", help="Force regeneration even if responses file exists")
     args = parser.parse_args()
 
+    print('args.evaluate_only', args.evaluate_only)
     # get responses
     if args.evaluate_only:
         # load existing responses
@@ -260,20 +266,15 @@ def main():
             return
     elif not os.path.exists(args.save_response_path) or args.force_regenerate:
         # fetch dataset, model, and tokenizer
-        ds = load_ds()
-        if args.test_limit > 0:
-            ds = ds[:args.test_limit]
-            print(f"Testing with limited dataset of {len(ds)} examples")
-        else:
-            print(f"Testing with no limit")
+        ds = load_ds(test_limit=args.test_limit)
         
         model, graph, noise, tokenizer = get_model_and_tokenizer(args.model_path)
 
         responses = []
         for datapoint in tqdm(ds, desc='Generating responses'):
-            response = generate_response(model, graph, noise, tokenizer, datapoint['prefix'], datapoint['suffix'],
-                                        batch_size=args.batch_size, steps=args.steps)
-            datapoint['response'] = response
+            datapoint['response'] = generate_response(
+                model, graph, noise, tokenizer, datapoint['prefix'], datapoint['suffix'],
+                batch_size=args.batch_size, steps=args.steps, gen_length=args.gen_length)
             responses.append(datapoint)
         
         with open(args.save_response_path, "w") as f:
