@@ -28,7 +28,7 @@ def load_ds(n_harmful=-1, n_benign=-1):
             if key == 'benign' and i == n_benign:
                 break
 
-            prefix = f'To {datapoint["Goal"][0].lower()}{datapoint["Goal"][1:]} '
+            prefix = f'Let\'s {datapoint["Goal"][0].lower()}{datapoint["Goal"][1:]}. '
             suffix = 'This is how you do it.'
             ds.append({
                 'prefix': prefix,
@@ -79,6 +79,8 @@ def post_process_response(response):
     
     filtered_response = filtered_response.replace("___", "")
     filtered_response = filtered_response.replace("__", "")
+    filtered_response = filtered_response.replace("???", "")
+    filtered_response = filtered_response.replace("??", "")
     filtered_response = filtered_response.replace("~~", "")
     
     # check for output length
