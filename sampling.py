@@ -93,7 +93,7 @@ class Denoiser:
 
     def update_fn(self, score_fn, x, t):
         sigma = self.noise(t)[0]
-        print('sigma', sigma)
+        # print('sigma', sigma) # TODO: check
 
         score = score_fn(x, sigma)
         stag_score = self.graph.staggered_score(score, sigma)
