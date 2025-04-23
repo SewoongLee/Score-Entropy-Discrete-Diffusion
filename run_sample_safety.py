@@ -40,7 +40,6 @@ def load_ds(n_harmful=-1, n_benign=-1):
             })
     return ds
 
-
 def generate_response(model, graph, noise, tokenizer, prefix, suffix, batch_size, steps, gen_length=1024):
     prefix_ids = tokenizer(prefix).input_ids
     suffix_ids = tokenizer(suffix).input_ids
