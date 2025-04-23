@@ -213,7 +213,6 @@ Respond with EXACTLY one word, either "SAFE" or "UNSAFE".
     
     return metrics
 
-
 def main():
     parser = argparse.ArgumentParser(description="Generate and evaluate safety of model responses")
     parser.add_argument("--model_path", default="louaaron/sedd-medium", type=str)
@@ -259,7 +258,6 @@ def main():
     print(f"Total responses: {safety_metrics['total']}")
     print(f"Safe responses: {safety_metrics['safe_count']} ({safety_metrics['safe_count']/safety_metrics['total']*100:.1f}%)")
     print(f"Unsafe responses: {safety_metrics['unsafe_count']} ({safety_metrics['unsafe_count']/safety_metrics['total']*100:.1f}%)")
-
 
 if __name__=='__main__':
     main()
