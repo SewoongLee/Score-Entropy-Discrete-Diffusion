@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from catsample import sample_categorical
 
 from model import utils as mutils
+from utils import dprint
 
 _PREDICTORS = {}
 
@@ -93,7 +94,8 @@ class Denoiser:
 
     def update_fn(self, score_fn, x, t):
         sigma = self.noise(t)[0]
-        # print('sigma', sigma) # TODO: check
+        
+        dprint(f'>> Denoiser.update_fn(score_fn={score_fn}, x={x}, t={t}) => sigma: {sigma}')
 
         score = score_fn(x, sigma)
         stag_score = self.graph.staggered_score(score, sigma)

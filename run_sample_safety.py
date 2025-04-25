@@ -60,7 +60,7 @@ def generate_response(model, graph, noise, tokenizer, prefix, suffix, batch_size
     # funct to manipulate the response generated
     response = post_process_response(raw_text)     # post-process the response for less gibberish
     
-    print('response:', response)
+    print('\nresponse:', response)
     return response
 
 def post_process_response(response):
@@ -217,14 +217,18 @@ def main():
     parser = argparse.ArgumentParser(description="Generate and evaluate safety of model responses")
     parser.add_argument("--model_path", default="louaaron/sedd-medium", type=str)
     parser.add_argument("--batch_size", type=int, default=1)
-    parser.add_argument("--steps", type=int, default=1024)
     
-    parser.add_argument("--gen_length", type=int, default=128)
+    # parser.add_argument("--steps", type=int, default=1024)
+    parser.add_argument("--steps", type=int, default=4)
+    
+    # parser.add_argument("--gen_length", type=int, default=128)
+    parser.add_argument("--gen_length", type=int, default=64)
+    
     parser.add_argument("--save_response_path", type=str, default="output_responses.json")
     parser.add_argument("--save_judgments_path", type=str, default="output_judgments.json")
-    parser.add_argument("--n_harmful", type=int, default=10, help="Limit testing to N examples (-1 = no limit)")
+    parser.add_argument("--n_harmful", type=int, default=1, help="Limit testing to N examples (-1 = no limit)")
     parser.add_argument("--n_benign", type=int, default=0, help="Limit testing to N examples (-1 = no limit)")
-    parser.add_argument("--force_regenerate", action="store_true", help="Force regeneration even if responses file exists")
+    parser.add_argument("--force_regenerate", default=True, action="store_true", help="Force regeneration even if responses file exists")
     args = parser.parse_args()
         
     if not os.path.exists(args.save_response_path) or args.force_regenerate:

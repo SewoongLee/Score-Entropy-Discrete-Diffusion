@@ -17,6 +17,7 @@ from .fused_add_dropout_scale import (
     get_bias_dropout_add_scale, 
     modulate_fused,
 )
+from utils import dprint
 
 
 def modulate(x, shift, scale):
@@ -152,6 +153,8 @@ class DDiTBlock(nn.Module):
 
     def forward(self, x, rotary_cos_sin, c, seqlens=None):
         batch_size, seq_len = x.shape[0], x.shape[1]
+        
+        dprint(">> DDiTBlock forward")
 
         bias_dropout_scale_fn = self._get_bias_dropout_scale()
 
@@ -218,6 +221,7 @@ class DDitFinalLayer(nn.Module):
 
 
     def forward(self, x, c):
+        dprint(">> DDitFinalLayer forward")
         shift, scale = self.adaLN_modulation(c)[:, None].chunk(2, dim=2)
         x = modulate_fused(self.norm_final(x), shift, scale)
         x = self.linear(x)
@@ -231,6 +235,8 @@ class SEDD(nn.Module, PyTorchModelHubMixin):
         # hack to make loading in configs easier
         if type(config) == dict:
             config = OmegaConf.create(config)
+
+        dprint(">> config:", config)
 
         self.config = config
 
@@ -259,8 +265,18 @@ class SEDD(nn.Module, PyTorchModelHubMixin):
 
     def forward(self, indices, sigma):
 
+        dprint(">> forward(indices, sigma)")
+        dprint("indices")
+        dprint(indices)
+        dprint("sigma:", sigma)
+        
         x = self.vocab_embed(indices)
+        
+        dprint("x.shape", x.shape)
+        
         c = F.silu(self.sigma_map(sigma))
+        
+        dprint("c.shape", c.shape)
 
         rotary_cos_sin = self.rotary_emb(x)
 
