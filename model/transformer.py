@@ -200,6 +200,7 @@ class EmbeddingLayer(nn.Module):
         2-> add in eigenvectors, 3 -> use pretrained embedding matrix
         """
         super().__init__()
+        dprint(f"vocab_dim: {vocab_dim}, dim:{dim}")
         self.embedding = nn.Parameter(torch.empty((vocab_dim, dim)))
         torch.nn.init.kaiming_uniform_(self.embedding, a=math.sqrt(5))
 
@@ -236,8 +237,6 @@ class SEDD(nn.Module, PyTorchModelHubMixin):
         if type(config) == dict:
             config = OmegaConf.create(config)
 
-        dprint(">> config:", config)
-
         self.config = config
 
         self.absorb = config.graph.type == "absorb"
@@ -264,20 +263,23 @@ class SEDD(nn.Module, PyTorchModelHubMixin):
 
 
     def forward(self, indices, sigma):
+        '''
+        indices: (batch_size, seq_len)
+        sigma: scalar Tensor
+        '''
 
         dprint(">> forward(indices, sigma)")
         dprint("indices")
         dprint(indices)
+        dprint("tokens")
+        from transformers import GPT2TokenizerFast
+        dprint(GPT2TokenizerFast.from_pretrained('gpt2', clean_up_tokenization_spaces=True).batch_decode(indices))
         dprint("sigma:", sigma)
         
-        x = self.vocab_embed(indices)
+        x = self.vocab_embed(indices)  # [batch_size, seq_len, dim]
         
-        dprint("x.shape", x.shape)
+        c = F.silu(self.sigma_map(sigma))  # [batch_size, cond_dim=128]
         
-        c = F.silu(self.sigma_map(sigma))
-        
-        dprint("c.shape", c.shape)
-
         rotary_cos_sin = self.rotary_emb(x)
 
         with torch.amp.autocast('cuda', dtype=torch.bfloat16):
@@ -294,4 +296,5 @@ class SEDD(nn.Module, PyTorchModelHubMixin):
             
         x = torch.scatter(x, -1, indices[..., None], torch.zeros_like(x[..., :1]))
 
-        return x
+        dprint(">> forward returns", x.shape)
+        return x  # x.shape: (batch_size, seq_len, vocab_size) <= probabilities
