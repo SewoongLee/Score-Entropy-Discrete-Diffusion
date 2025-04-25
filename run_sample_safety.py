@@ -18,7 +18,7 @@ from collections import Counter
 device = torch.device('cuda')
 
 def load_ds(n_harmful=-1, n_benign=-1):
-    dataset = load_dataset('JailbreakBench/JBB-Behaviors', 'behaviors')
+    dataset = load_dataset('JailbreakBench/JBB-Behaviors', 'behaviors').shuffle(seed=42)
     ds = []
     
     for key in ['harmful', 'benign']:
@@ -60,7 +60,7 @@ def generate_response(model, graph, noise, tokenizer, prefix, suffix, batch_size
     # funct to manipulate the response generated
     response = post_process_response(raw_text)     # post-process the response for less gibberish
     
-    print('\nresponse:', response)
+    print('\nresponse:', response, '\n')
     return response
 
 def post_process_response(response):
