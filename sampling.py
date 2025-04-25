@@ -60,6 +60,7 @@ class Predictor(abc.ABC):
 @register_predictor(name="euler")
 class EulerPredictor(Predictor):
     def update_fn(self, score_fn, x, t, step_size):
+        dprint(">> EulerPredictor")
         sigma, dsigma = self.noise(t)
         score = score_fn(x, sigma)
 
@@ -70,27 +71,50 @@ class EulerPredictor(Predictor):
 @register_predictor(name="none")
 class NonePredictor(Predictor):
     def update_fn(self, score_fn, x, t, step_size):
+        dprint(">> NonePredictor")
         return x
 
 
 @register_predictor(name="analytic")
 class AnalyticPredictor(Predictor):
     def update_fn(self, score_fn, x, t, step_size):
+        dprint(">> AnalyticPredictor")
         curr_sigma = self.noise(t)[0]
         next_sigma = self.noise(t - step_size)[0]
         dsigma = curr_sigma - next_sigma
+        dprint(f"dsigma({dsigma}) = curr_sigma({curr_sigma}) - next_sigma({next_sigma})")
 
-        score = score_fn(x, curr_sigma)
+        score = score_fn(x, curr_sigma)  # [batch_size, seq_len, vocab_size]
+        dprint("score:", score.shape)
+        dprint(score)
+        dprint(score[:,0,:])
+        dprint(score[:,1,:])
+        dprint(score[:,2,:])
 
-        stag_score = self.graph.staggered_score(score, dsigma)
-        probs = stag_score * self.graph.transp_transition(x, dsigma)
-        return sample_categorical(probs)
+        stag_score = self.graph.staggered_score(score, dsigma)  # [batch_size, seq_len, vocab_size]
+        dprint("stag_score(score, dsigma):", stag_score.shape)
+        dprint(stag_score.shape)
+        
+        probs = stag_score * self.graph.transp_transition(x, dsigma)  # [batch_size, seq_len, vocab_size]
+        
+        dprint("transp: ", self.graph.transp_transition(x, dsigma).shape)
+        dprint(self.graph.transp_transition(x, dsigma))
+        
+        dprint("probs = stag_score ", probs.shape)
+        dprint(probs.shape)
+
+        return sample_categorical(probs) # x: [batch_size, seq_len]
 
     
 class Denoiser:
     def __init__(self, graph, noise):
         self.graph = graph
         self.noise = noise
+        
+        dprint("graph")
+        dprint(graph)
+        dprint("noise")
+        dprint(noise)
 
     def update_fn(self, score_fn, x, t):
         sigma = self.noise(t)[0]
@@ -124,26 +148,44 @@ def get_sampling_fn(config, graph, noise, batch_dims, eps, device):
 
 def get_pc_sampler(graph, noise, batch_dims, predictor, steps, denoise=True, eps=1e-5, device=torch.device('cpu'), proj_fun=lambda x: x):
     predictor = get_predictor(predictor)(graph, noise)
+    dprint('predictor')
+    dprint(predictor)
     projector = proj_fun
     denoiser = Denoiser(graph, noise)
 
     @torch.no_grad()
     def pc_sampler(model):
+        dprint(">> pc_sampler")
+        
         sampling_score_fn = mutils.get_score_fn(model, train=False, sampling=True)
+        dprint("sampling_score_fn")
+        dprint(sampling_score_fn)
+        
         x = graph.sample_limit(*batch_dims).to(device)
+        dprint("x", x)
+        
         timesteps = torch.linspace(1, eps, steps + 1, device=device)
+        dprint("timesteps", timesteps)
+        
         dt = (1 - eps) / steps
+        dprint("dt", dt)
 
-        for i in range(steps):
+        for i in range(steps): # predictor
+            dprint("i:", i)
             t = timesteps[i] * torch.ones(x.shape[0], 1, device=device)
             x = projector(x)
             x = predictor.update_fn(sampling_score_fn, x, t, dt)            
 
-        if denoise:
+        dprint("x", x)
+
+        if denoise: # denoisor = basically predictor without next sigma and [MASK] token prob.
+            dprint(">> denoise")
             x = projector(x)
             t = timesteps[-1] * torch.ones(x.shape[0], 1, device=device)
             x = denoiser.update_fn(sampling_score_fn, x, t)
             
+        dprint("x", x)
+        
         return x
     
     return pc_sampler
