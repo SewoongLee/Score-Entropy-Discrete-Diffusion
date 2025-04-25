@@ -78,8 +78,8 @@ def main():
         
         # dataset_name="lambada",
         # dataset_name="wikitext2",
-        # dataset_name="ptb",
-        dataset_name="wikitext103",
+        dataset_name="ptb",
+        # dataset_name="wikitext103",
         # dataset_name="lm1b",
         
         batch_size=args.batch_size,

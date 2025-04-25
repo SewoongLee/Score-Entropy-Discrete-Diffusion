@@ -6,7 +6,6 @@ from transformers import GPT2TokenizerFast
 import sampling
 
 import time
-import utils
 
 def main():
     parser = argparse.ArgumentParser(description="Generate some samples")
@@ -52,8 +51,9 @@ def main():
     samples = proj_fun(sampling_fn(model))     
     print(f"Elapsed Time: {time.time() - start_time:.2f}sec")
 
+    import utils
     utils.save_arr_into_file()
-    utils.dprint(utils.load_arr_from_file().shape)
+    utils.dprint(f"Score vectors({utils.load_arr_from_file().shape}) saved!")
 
     text_samples = tokenizer.batch_decode(samples)
     for i in text_samples:

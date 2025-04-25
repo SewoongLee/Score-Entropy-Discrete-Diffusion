@@ -78,7 +78,7 @@ def dprint(*args, **kwargs):
 
 import numpy as np
 import os
-_np_file_name='arrays.npy'
+_np_file_name='score_weights.npy'
 _np_buffer = []
 def append_arr_to_buf(arr):
     _np_buffer.append(arr)

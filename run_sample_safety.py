@@ -17,11 +17,15 @@ from collections import Counter
 
 device = torch.device('cuda')
 
-def load_ds(n_harmful=-1, n_benign=-1):
-    dataset = load_dataset('JailbreakBench/JBB-Behaviors', 'behaviors').shuffle(seed=42)
+def load_ds(n_harmful=-1, n_benign=-1, split='train'):
+    dataset = load_dataset('JailbreakBench/JBB-Behaviors', 'behaviors')
+    dataset = dataset.shuffle(seed=42)
+    
     ds = []
     
     for key in ['harmful', 'benign']:
+        dataset[key] = dataset[key].train_test_split(0.5, seed=42)[split]
+        
         for i, datapoint in enumerate(dataset[key]):
             if key == 'harmful' and i == n_harmful:
                 break
@@ -219,21 +223,25 @@ def main():
     parser.add_argument("--batch_size", type=int, default=1)
     
     # parser.add_argument("--steps", type=int, default=1024)
-    parser.add_argument("--steps", type=int, default=4)
+    parser.add_argument("--steps", type=int, default=16)
+    # parser.add_argument("--steps", type=int, default=4)
     
     # parser.add_argument("--gen_length", type=int, default=128)
     parser.add_argument("--gen_length", type=int, default=64)
     
     parser.add_argument("--save_response_path", type=str, default="output_responses.json")
     parser.add_argument("--save_judgments_path", type=str, default="output_judgments.json")
-    parser.add_argument("--n_harmful", type=int, default=1, help="Limit testing to N examples (-1 = no limit)")
+    parser.add_argument("--n_harmful", type=int, default=-1, help="Limit testing to N examples (-1 = no limit)")
     parser.add_argument("--n_benign", type=int, default=0, help="Limit testing to N examples (-1 = no limit)")
     parser.add_argument("--force_regenerate", default=True, action="store_true", help="Force regeneration even if responses file exists")
+
+    parser.add_argument("--split", type=str, default="train")
+    # parser.add_argument("--split", type=str, default="test")
     args = parser.parse_args()
         
     if not os.path.exists(args.save_response_path) or args.force_regenerate:
         # fetch dataset, model, and tokenizer
-        ds = load_ds(n_harmful=args.n_harmful, n_benign=args.n_benign)
+        ds = load_ds(n_harmful=args.n_harmful, n_benign=args.n_benign, split=args.split)
         tokenizer = GPT2TokenizerFast.from_pretrained('gpt2', clean_up_tokenization_spaces=True)
         model, graph, noise = load_model(args.model_path, device)
         
@@ -262,6 +270,10 @@ def main():
     print(f"Total responses: {safety_metrics['total']}")
     print(f"Safe responses: {safety_metrics['safe_count']} ({safety_metrics['safe_count']/safety_metrics['total']*100:.1f}%)")
     print(f"Unsafe responses: {safety_metrics['unsafe_count']} ({safety_metrics['unsafe_count']/safety_metrics['total']*100:.1f}%)")
+
+    import utils
+    utils.save_arr_into_file()
+    print(f"Score vectors({utils.load_arr_from_file().shape}) saved!")
 
 if __name__=='__main__':
     main()

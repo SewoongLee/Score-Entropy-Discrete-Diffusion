@@ -88,6 +88,7 @@ class AnalyticPredictor(Predictor):
         score = score_fn(x, curr_sigma)  # [batch_size, seq_len, vocab_size]
 
         stag_score = self.graph.staggered_score(score, dsigma)  # [batch_size, seq_len, vocab_size]
+        print("stag_score:",stag_score.shape)
         [utils.append_arr_to_buf(stag_score[:,i,:].detach().cpu().to(torch.float32).numpy()) for i in range(stag_score.shape[1])]
         
         # hard to print due to numerically small numbers
