@@ -72,5 +72,5 @@ def save_checkpoint(ckpt_dir, state):
 
 # debug print
 def dprint(*args, **kwargs):
-    # print(*args, **kwargs)
+    print(*args, **kwargs)
     pass
