@@ -33,11 +33,6 @@ def main():
     input_ids = prefix_ids + suffix_ids
     input_locs = list(range(len(prefix_ids))) + list(range(gen_len-len(suffix_ids), gen_len))
 
-    # more generaly commands can be defined with something like below:
-    # input_ids = [0, 1, 512, 8080, 50256, 20000]
-    # input_locs = [5, 6, 19, 20, 1000, 10001]
-
-
     input_ids = torch.tensor(input_ids, device="cuda")[None].repeat(args.batch_size, 1)
 
     def proj_fun(x):
@@ -46,8 +41,8 @@ def main():
     
     device = torch.device('cuda')
     model, graph, noise = load_model(args.model_path, device)    
-    print('model:', model)
-    print('noise:', noise)
+    utils.dprint('model:', model)
+    utils.dprint('noise:', noise)
 
     sampling_fn = sampling.get_pc_sampler(
         graph, noise, (args.batch_size, gen_len), 'analytic', args.steps, device=device, proj_fun=proj_fun
@@ -58,7 +53,7 @@ def main():
     print(f"Elapsed Time: {time.time() - start_time:.2f}sec")
 
     utils.save_arr_into_file()
-    print(utils.load_arr_from_file().shape)
+    utils.dprint(utils.load_arr_from_file().shape)
 
     text_samples = tokenizer.batch_decode(samples)
     for i in text_samples:
