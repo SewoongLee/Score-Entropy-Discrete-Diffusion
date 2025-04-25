@@ -153,13 +153,13 @@ def get_pc_sampler(graph, noise, batch_dims, predictor, steps, denoise=True, eps
         dprint("dt", dt)
 
         for i in range(steps): # predictor
-            dprint("=========== Predictor Step", i, "===========")
+            dprint("=============== Predictor Step", i, "===============")
             t = timesteps[i] * torch.ones(x.shape[0], 1, device=device)
             x = projector(x)
             x = predictor.update_fn(sampling_score_fn, x, t, dt)            
 
         if denoise: # denoisor = basically predictor without next sigma and [MASK] token prob.
-            dprint("=========== Last Denoiser Step ===========")
+            dprint("=============== Last Denoiser Step =================")
             x = projector(x)
             t = timesteps[-1] * torch.ones(x.shape[0], 1, device=device)
             x = denoiser.update_fn(sampling_score_fn, x, t)
