@@ -18,6 +18,7 @@ from .fused_add_dropout_scale import (
     modulate_fused,
 )
 from utils import dprint
+import utils
 
 
 def modulate(x, shift, scale):
@@ -120,6 +121,7 @@ class DDiTBlock(nn.Module):
 
     def __init__(self, dim, n_heads, cond_dim, mlp_ratio=4, dropout=0.1):
         super().__init__()
+        dprint(f">> DDiTBlock.__init__(dim={dim}, n_heads={n_heads}, cond_dim={cond_dim}, mlp_ratio={mlp_ratio}, dropout={dropout})")
         self.n_heads = n_heads
 
         self.norm1 = LayerNorm(dim)
@@ -152,9 +154,7 @@ class DDiTBlock(nn.Module):
 
 
     def forward(self, x, rotary_cos_sin, c, seqlens=None):
-        batch_size, seq_len = x.shape[0], x.shape[1]
-        
-        dprint(">> DDiTBlock forward")
+        batch_size, seq_len, d_model = x.shape
 
         bias_dropout_scale_fn = self._get_bias_dropout_scale()
 
@@ -189,7 +189,7 @@ class DDiTBlock(nn.Module):
 
         # mlp operation
         x = bias_dropout_scale_fn(self.mlp(modulate_fused(self.norm2(x), shift_mlp, scale_mlp)), None, gate_mlp, x, self.dropout)
-        return x
+        return x  # (bacth_size, seq_len, d_model)
 
 
 
@@ -222,7 +222,7 @@ class DDitFinalLayer(nn.Module):
 
 
     def forward(self, x, c):
-        dprint(">> DDitFinalLayer forward")
+        dprint(">> DDitFinalLayer.forward")
         shift, scale = self.adaLN_modulation(c)[:, None].chunk(2, dim=2)
         x = modulate_fused(self.norm_final(x), shift, scale)
         x = self.linear(x)
@@ -268,13 +268,14 @@ class SEDD(nn.Module, PyTorchModelHubMixin):
         sigma: scalar Tensor
         '''
 
-        dprint(">> forward(indices, sigma)")
-        dprint("indices")
+        dprint(f">> SEDD.forward(indices, sigma={sigma})")
+        dprint("indices:")
         dprint(indices)
-        dprint("tokens")
+        dprint("decoded indices:")
         from transformers import GPT2TokenizerFast
-        dprint(GPT2TokenizerFast.from_pretrained('gpt2', clean_up_tokenization_spaces=True).batch_decode(indices))
-        dprint("sigma:", sigma)
+        tokenizer = GPT2TokenizerFast.from_pretrained('gpt2', clean_up_tokenization_spaces=True)
+        dprint([tokenizer.convert_ids_to_tokens(indices[bi]) for bi in range(indices.shape[0])])
+        dprint(tokenizer.batch_decode(indices))
         
         x = self.vocab_embed(indices)  # [batch_size, seq_len, dim]
         
@@ -283,7 +284,9 @@ class SEDD(nn.Module, PyTorchModelHubMixin):
         rotary_cos_sin = self.rotary_emb(x)
 
         with torch.amp.autocast('cuda', dtype=torch.bfloat16):
+            dprint(f">> DDiTBlock forward", x.shape, end='')
             for i in range(len(self.blocks)):
+                dprint(".", end='')
                 x = self.blocks[i](x, rotary_cos_sin, c, seqlens=None)
 
             x = self.output_layer(x, c)
@@ -296,5 +299,4 @@ class SEDD(nn.Module, PyTorchModelHubMixin):
             
         x = torch.scatter(x, -1, indices[..., None], torch.zeros_like(x[..., :1]))
 
-        dprint(">> forward returns", x.shape)
         return x  # x.shape: (batch_size, seq_len, vocab_size) <= probabilities

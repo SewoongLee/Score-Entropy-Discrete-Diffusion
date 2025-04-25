@@ -6,6 +6,7 @@ from transformers import GPT2TokenizerFast
 import sampling
 
 import time
+import utils
 
 def main():
     parser = argparse.ArgumentParser(description="Generate some samples")
@@ -38,24 +39,15 @@ def main():
 
 
     input_ids = torch.tensor(input_ids, device="cuda")[None].repeat(args.batch_size, 1)
-    print('prefix_ids:', prefix_ids)
-    print('suffix_ids:', suffix_ids)
-    print('input_ids:', input_ids)
-    print('input_locs:', input_locs)
 
     def proj_fun(x):
         x[:, input_locs] = input_ids
         return x
     
     device = torch.device('cuda')
-    model, graph, noise = load_model(args.model_path, device)
-    
-    print('model')
-    print(model)
-    print('graph')
-    print(graph)
-    print('noise')
-    print(noise)
+    model, graph, noise = load_model(args.model_path, device)    
+    print('model:', model)
+    print('noise:', noise)
 
     sampling_fn = sampling.get_pc_sampler(
         graph, noise, (args.batch_size, gen_len), 'analytic', args.steps, device=device, proj_fun=proj_fun
@@ -64,6 +56,9 @@ def main():
     print("Sampling started."); start_time = time.time()
     samples = proj_fun(sampling_fn(model))     
     print(f"Elapsed Time: {time.time() - start_time:.2f}sec")
+
+    utils.save_arr_into_file()
+    print(utils.load_arr_from_file().shape)
 
     text_samples = tokenizer.batch_decode(samples)
     for i in text_samples:
