@@ -271,9 +271,10 @@ def main():
     print(f"Safe responses: {safety_metrics['safe_count']} ({safety_metrics['safe_count']/safety_metrics['total']*100:.1f}%)")
     print(f"Unsafe responses: {safety_metrics['unsafe_count']} ({safety_metrics['unsafe_count']/safety_metrics['total']*100:.1f}%)")
 
-    import utils
-    utils.save_arr_into_file()
-    print(f"Score vectors({utils.load_arr_from_file().shape}) saved!")
+    if args.split == 'train':
+        import utils
+        utils.save_arr_into_file()
+        print(f"Score vectors({utils.load_arr_from_file().shape}) saved!")
 
 if __name__=='__main__':
     main()
