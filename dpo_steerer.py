@@ -89,8 +89,8 @@ def dpo_loss(model, input_ids, sigma, beta=1.0):
 
     
 
-    logp_chosen = compute_logprobs(logits_chosen, chosen_ids)     # [B]
-    logp_rejected = compute_logprobs(logits_rejected, rejected_ids)  # [B]
+    logp_chosen = compute_logprobs(logits_chosen, input_ids)     # [B]
+    logp_rejected = compute_logprobs(logits_rejected, input_ids)  # [B]
     
     
 
