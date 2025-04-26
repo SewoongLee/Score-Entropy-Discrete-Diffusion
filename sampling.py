@@ -4,6 +4,8 @@ import torch.nn.functional as F
 from catsample import sample_categorical
 
 from model import utils as mutils
+from utils import dprint
+import utils
 
 _PREDICTORS = {}
 
@@ -59,6 +61,7 @@ class Predictor(abc.ABC):
 @register_predictor(name="euler")
 class EulerPredictor(Predictor):
     def update_fn(self, score_fn, x, t, step_size):
+        dprint(">> EulerPredictor")
         sigma, dsigma = self.noise(t)
         score = score_fn(x, sigma)
 
@@ -69,31 +72,42 @@ class EulerPredictor(Predictor):
 @register_predictor(name="none")
 class NonePredictor(Predictor):
     def update_fn(self, score_fn, x, t, step_size):
+        dprint(">> NonePredictor")
         return x
 
 
 @register_predictor(name="analytic")
 class AnalyticPredictor(Predictor):
     def update_fn(self, score_fn, x, t, step_size):
+        dprint(">> AnalyticPredictor")
         curr_sigma = self.noise(t)[0]
         next_sigma = self.noise(t - step_size)[0]
         dsigma = curr_sigma - next_sigma
+        dprint(f"dsigma({dsigma}) = curr_sigma({curr_sigma}) - next_sigma({next_sigma})")
 
-        score = score_fn(x, curr_sigma)
+        score = score_fn(x, curr_sigma)  # [batch_size, seq_len, vocab_size]
 
-        stag_score = self.graph.staggered_score(score, dsigma)
-        probs = stag_score * self.graph.transp_transition(x, dsigma)
-        return sample_categorical(probs)
+        stag_score = self.graph.staggered_score(score, dsigma)  # [batch_size, seq_len, vocab_size]
+        print("stag_score:",stag_score.shape)
+        [utils.append_arr_to_buf(stag_score[:,i,:].detach().cpu().to(torch.float32).numpy()) for i in range(stag_score.shape[1])]
+        
+        # hard to print due to numerically small numbers
+        probs = stag_score * self.graph.transp_transition(x, dsigma)  # [batch_size, seq_len, vocab_size]
+
+        return sample_categorical(probs) # x: [batch_size, seq_len]
 
     
 class Denoiser:
     def __init__(self, graph, noise):
         self.graph = graph
         self.noise = noise
+        
+        dprint(f">> Denoiser.__init__(graph, noise={noise})")
 
     def update_fn(self, score_fn, x, t):
         sigma = self.noise(t)[0]
-        # print('sigma', sigma) # TODO: check
+        
+        dprint(f'>> Denoiser.update_fn(score_fn, x={x}, t={t}), sigma: {sigma}')
 
         score = score_fn(x, sigma)
         stag_score = self.graph.staggered_score(score, sigma)
@@ -127,17 +141,26 @@ def get_pc_sampler(graph, noise, batch_dims, predictor, steps, denoise=True, eps
 
     @torch.no_grad()
     def pc_sampler(model):
+        dprint(f">> pc_sampler(model={model})")
+        
         sampling_score_fn = mutils.get_score_fn(model, train=False, sampling=True)
+        
         x = graph.sample_limit(*batch_dims).to(device)
+        
         timesteps = torch.linspace(1, eps, steps + 1, device=device)
+        dprint("timesteps", timesteps)
+        
         dt = (1 - eps) / steps
+        dprint("dt", dt)
 
-        for i in range(steps):
+        for i in range(steps): # predictor
+            dprint("=============== Predictor Step", i, "===============")
             t = timesteps[i] * torch.ones(x.shape[0], 1, device=device)
             x = projector(x)
             x = predictor.update_fn(sampling_score_fn, x, t, dt)            
 
-        if denoise:
+        if denoise: # denoisor = basically predictor without next sigma and [MASK] token prob.
+            dprint("=============== Last Denoiser Step =================")
             x = projector(x)
             t = timesteps[-1] * torch.ones(x.shape[0], 1, device=device)
             x = denoiser.update_fn(sampling_score_fn, x, t)

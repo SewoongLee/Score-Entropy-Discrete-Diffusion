@@ -13,7 +13,7 @@ import losses
 from model.ema import ExponentialMovingAverage
 
 @torch.no_grad()
-def compute_sedd_perplexity_on_dataset(
+def calc_ppl(
     model_name="louaaron/sedd-medium",
     dataset_name="wikitext103",
     batch_size=4,
@@ -25,7 +25,7 @@ def compute_sedd_perplexity_on_dataset(
     model, graph, noise = load_model(model_name, device)
 
     # 2. Load tokenizer and dataset
-    tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+    tokenizer = GPT2TokenizerFast.from_pretrained("gpt2", clean_up_tokenization_spaces=True)
     tokenizer.pad_token = tokenizer.eos_token  # for padding safety
 
     dataset = get_dataset(
@@ -51,7 +51,7 @@ def compute_sedd_perplexity_on_dataset(
     total_loss = 0.0
     total_tokens = 0
 
-    for batch in tqdm(dataloader, desc="Computing perplexity"):
+    for batch in tqdm(dataloader):
         input_ids = batch['input_ids'].to(device)
 
         # Use SEDD to get loss (score entropy loss)
@@ -62,7 +62,7 @@ def compute_sedd_perplexity_on_dataset(
     avg_loss = total_loss / total_tokens
     ppl = torch.exp(torch.tensor(avg_loss))
 
-    print(f"\nApproximate Perplexity of {model_name} on {dataset_name}: {ppl:.2f}")
+    print(f"\nApproximate PPL of {model_name} on {dataset_name}: {ppl:.2f}")
     return ppl.item()
 
 def main():
@@ -73,19 +73,18 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    ppl = compute_sedd_perplexity_on_dataset(
+    ppl = calc_ppl(
         model_name="louaaron/sedd-medium",
         
         # dataset_name="lambada",
         # dataset_name="wikitext2",
-        # dataset_name="ptb",
-        dataset_name="wikitext103",
+        dataset_name="ptb",
+        # dataset_name="wikitext103",
         # dataset_name="lm1b",
         
         batch_size=args.batch_size,
         device=device,
     )
-    print(f"\nPerplexity: {ppl:.2f}")
 
 if __name__ == "__main__":
     main()

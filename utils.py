@@ -68,3 +68,22 @@ def save_checkpoint(ckpt_dir, state):
         'step': state['step']
     }
     torch.save(saved_state, ckpt_dir)
+
+
+# debug print
+def dprint(*args, **kwargs):
+    print(*args, **kwargs)  # Comment this line out not to print
+    pass
+
+
+import numpy as np
+import os
+_np_file_name='score_weights.npy'
+_np_buffer = []
+def append_arr_to_buf(arr):
+    _np_buffer.append(arr)
+def save_arr_into_file(file_name=_np_file_name):
+    np.save(file_name, np.vstack(_np_buffer))
+    _np_buffer.clear()
+def load_arr_from_file(file_name=_np_file_name):
+    return np.load(file_name)
