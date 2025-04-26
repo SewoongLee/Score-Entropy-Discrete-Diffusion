@@ -71,11 +71,8 @@ def save_checkpoint(ckpt_dir, state):
 
 
 # debug print
-dprint_on = True
-def set_dprint(turn_on = True):
-    dprint_on = turn_on
 def dprint(*args, **kwargs):
-    print(*args, **kwargs)  # Comment this line out not to print
+    # print(*args, **kwargs)  # Comment this line out not to print
     pass
 
 
