@@ -76,7 +76,8 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     if True:
-        print("score_steeting applied!")
+    # if False:
+        print("score_steering applied!")
         utils.calc_avg_w()
     
     ppl = calc_ppl(
