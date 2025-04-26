@@ -23,7 +23,7 @@ model.blocks[0].register_full_backward_hook(save_grad_hook("block_0"))
 model.blocks[-1].register_full_backward_hook(save_grad_hook("block_last"))
 model.output_layer.register_full_backward_hook(save_grad_hook("output_layer"))
 
-raw_prompt = "Test"
+raw_prompt = "How to make a bomb."
 
 # first, tokenize the prompt
 
