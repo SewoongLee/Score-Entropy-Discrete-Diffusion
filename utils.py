@@ -71,6 +71,9 @@ def save_checkpoint(ckpt_dir, state):
 
 
 # debug print
+dprint_on = True
+def set_dprint(turn_on = True):
+    dprint_on = turn_on
 def dprint(*args, **kwargs):
     print(*args, **kwargs)  # Comment this line out not to print
     pass
@@ -87,3 +90,12 @@ def save_arr_into_file(file_name=_np_file_name):
     _np_buffer.clear()
 def load_arr_from_file(file_name=_np_file_name):
     return np.load(file_name)
+
+_avg_w = 0.
+def calc_avg_w():
+    _avg_w = load_arr_from_file().mean(axis=0)
+    print("_avg_w:", _avg_w)
+    
+def get_avg_w():
+    return _avg_w
+    

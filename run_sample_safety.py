@@ -15,6 +15,8 @@ import pandas as pd
 import numpy as np
 from collections import Counter
 
+import utils
+
 device = torch.device('cuda')
 
 def load_ds(n_harmful=-1, n_benign=-1, split='train'):
@@ -235,8 +237,11 @@ def main():
     parser.add_argument("--n_benign", type=int, default=0, help="Limit testing to N examples (-1 = no limit)")
     parser.add_argument("--force_regenerate", default=True, action="store_true", help="Force regeneration even if responses file exists")
 
-    parser.add_argument("--split", type=str, default="train")
-    # parser.add_argument("--split", type=str, default="test")
+    # parser.add_argument("--split", type=str, default="train")
+    parser.add_argument("--split", type=str, default="test")
+    
+    parser.add_argument("--init_steering", default=True)
+    parser.add_argument("--score_steering", default=True)
     args = parser.parse_args()
         
     if not os.path.exists(args.save_response_path) or args.force_regenerate:
@@ -244,6 +249,10 @@ def main():
         ds = load_ds(n_harmful=args.n_harmful, n_benign=args.n_benign, split=args.split)
         tokenizer = GPT2TokenizerFast.from_pretrained('gpt2', clean_up_tokenization_spaces=True)
         model, graph, noise = load_model(args.model_path, device)
+        
+        if args.score_steering:
+            print("score_steeting applied!")
+            utils.calc_avg_w()
         
         responses = []
         for datapoint in tqdm(ds, desc='Generating responses'):
@@ -272,7 +281,6 @@ def main():
     print(f"Unsafe responses: {safety_metrics['unsafe_count']} ({safety_metrics['unsafe_count']/safety_metrics['total']*100:.1f}%)")
 
     if args.split == 'train':
-        import utils
         utils.save_arr_into_file()
         print(f"Score vectors({utils.load_arr_from_file().shape}) saved!")
 

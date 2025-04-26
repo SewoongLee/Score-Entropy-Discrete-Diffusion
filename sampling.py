@@ -89,7 +89,12 @@ class AnalyticPredictor(Predictor):
 
         stag_score = self.graph.staggered_score(score, dsigma)  # [batch_size, seq_len, vocab_size]
         print("stag_score:",stag_score.shape)
-        [utils.append_arr_to_buf(stag_score[:,i,:].detach().cpu().to(torch.float32).numpy()) for i in range(stag_score.shape[1])]
+        if utils.get_avg_w() == 0.:
+            [utils.append_arr_to_buf(stag_score[:,i,:].detach().cpu().to(torch.float32).numpy()) for i in range(stag_score.shape[1])]
+            pass
+        else:
+            for i in range(stag_score.shape[1]):
+                stag_score[:,i,:] -= 0.1 * utils.get_avg_w()
         
         # hard to print due to numerically small numbers
         probs = stag_score * self.graph.transp_transition(x, dsigma)  # [batch_size, seq_len, vocab_size]
