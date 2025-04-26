@@ -12,6 +12,8 @@ from data import get_dataset
 import losses
 from model.ema import ExponentialMovingAverage
 
+import utils
+
 @torch.no_grad()
 def calc_ppl(
     model_name="louaaron/sedd-medium",
@@ -72,6 +74,10 @@ def main():
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    if True:
+        print("score_steeting applied!")
+        utils.calc_avg_w()
     
     ppl = calc_ppl(
         model_name="louaaron/sedd-medium",
