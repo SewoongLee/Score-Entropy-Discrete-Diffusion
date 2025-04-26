@@ -6,6 +6,8 @@ import torch.optim as optim
 import openai
 from transformers import AutoTokenizer
 
+# This is me, Vincent's, key. Please don't plagirize. I paid 5$ to OpenAI for it, lol.
+api_key = "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"
 model, graph, noise = load_model("louaaron/sedd-medium", "cuda")
 
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
@@ -36,7 +38,7 @@ input_ids = inputs["input_ids"]  # tensor of shape [1, T]
 
 
 
-def dpo_loss(model, input_ids, sigma, chosen_ids, rejected_ids, beta=1.0):
+def dpo_loss(model, input_ids, sigma, beta=1.0):
     """
     Compute DPO loss given model, inputs, sigma, and two outputs: chosen and rejected.
     """
@@ -52,8 +54,8 @@ def dpo_loss(model, input_ids, sigma, chosen_ids, rejected_ids, beta=1.0):
     
     #Do some process here to decide which of the two is preferred
     # Sample token IDs
-    probs1 = F.softmax(logits1, dim=-1)
-    probs2 = F.softmax(logits2, dim=-1)
+    probs1 = F.softmax(logits_response1, dim=-1)
+    probs2 = F.softmax(logits_response2, dim=-1)
 
     sampled_ids1 = torch.argmax(probs1, dim=-1)  # or torch.multinomial
     sampled_ids2 = torch.argmax(probs2, dim=-1)
@@ -63,9 +65,11 @@ def dpo_loss(model, input_ids, sigma, chosen_ids, rejected_ids, beta=1.0):
     text2 = tokenizer.batch_decode(sampled_ids2, skip_special_tokens=True)[0]
     
     # use LLM to decide which of the two is better
-    prompt = "Here are two responses to the same prompt. \n \n Response A:\n {text1} \n\n Response B:\n {text2} \n \n Which response is better, A or B? Please just answer A or B."
+    prompt = f"Here are two responses to the same prompt. \n \n Response A:\n {text1} \n\n Response B:\n {text2} \n \n Based on your understanding of human ethics and preference, which of the two responses is better? Please just answer A or B."
 
-    response = openai.ChatCompletion.create(
+    client = openai.OpenAI(api_key=api_key)
+
+    response = client.chat.completions.create(
         model="gpt-4-turbo",
         messages=[
             {"role": "user", "content": prompt}
@@ -73,7 +77,10 @@ def dpo_loss(model, input_ids, sigma, chosen_ids, rejected_ids, beta=1.0):
         temperature=0.7  # deterministic
     )
     
-    choice = response['choices'][0]['message']['content'].strip()
+    choice = response.choices[0].message.content.strip()
+    
+    logits_preferred = None
+    logits_rejected = None
     
     if choice == 'A':
         logits_preferred = logits_response1
@@ -82,8 +89,7 @@ def dpo_loss(model, input_ids, sigma, chosen_ids, rejected_ids, beta=1.0):
         logits_preferred = logits_response2
         logits_rejected = logits_response1
 
-    logits_preferred = None
-    logits_rejected = None
+    
 
     logp_chosen = compute_logprobs(logits_chosen, chosen_ids)     # [B]
     logp_rejected = compute_logprobs(logits_rejected, rejected_ids)  # [B]
@@ -97,7 +103,10 @@ def dpo_loss(model, input_ids, sigma, chosen_ids, rejected_ids, beta=1.0):
 
 
 optimizer.zero_grad()
-dpo_loss.backward(retain_graph=True)
+
+loss = dpo_loss(model, input_ids, 0.3)
+loss.backward(retain_graph=True)
+
 print("Gradient norm contributions:")
 for name, norm in grad_logs.items():
     print(f"{name}: {norm:.4f}")
