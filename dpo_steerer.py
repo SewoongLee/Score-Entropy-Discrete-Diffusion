@@ -7,7 +7,7 @@ import openai
 from transformers import AutoTokenizer
 
 # This is me, Vincent's, key. Please don't plagirize. I paid 5$ to OpenAI for it, lol.
-api_key = "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"
+api_key = ""
 model, graph, noise = load_model("louaaron/sedd-medium", "cuda")
 
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
