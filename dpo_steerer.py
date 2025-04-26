@@ -6,8 +6,6 @@ import torch.optim as optim
 import openai
 from transformers import AutoTokenizer
 
-# This is me, Vincent's, key. Please don't plagirize. I paid 5$ to OpenAI for it, lol.
-api_key = "MY-KEY"
 model, graph, noise = load_model("louaaron/sedd-medium", "cuda")
 
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
