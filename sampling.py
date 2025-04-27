@@ -78,6 +78,9 @@ class NonePredictor(Predictor):
 
 @register_predictor(name="analytic")
 class AnalyticPredictor(Predictor):
+    
+    steering_flag = True
+    
     def update_fn(self, score_fn, x, t, step_size):
         dprint(">> AnalyticPredictor")
         curr_sigma = self.noise(t)[0]
@@ -88,13 +91,18 @@ class AnalyticPredictor(Predictor):
         score = score_fn(x, curr_sigma)  # [batch_size, seq_len, vocab_size]
 
         stag_score = self.graph.staggered_score(score, dsigma)  # [batch_size, seq_len, vocab_size]
+        
+        ###### STEERING #####
         print("stag_score:",stag_score.shape)
-        if utils.get_avg_w() == 0.:
-            [utils.append_arr_to_buf(stag_score[:,i,:].detach().cpu().to(torch.float32).numpy()) for i in range(stag_score.shape[1])]
-            pass
-        else:
+        
+        # Store weights
+        # [utils.append_arr_to_buf(stag_score[:,i,:].detach().cpu().to(torch.float32).numpy()) for i in range(stag_score.shape[1])]
+
+        if self.steering_flag:
+            self.steering_flag = False # For one-time x0 steering
             for i in range(stag_score.shape[1]):
-                stag_score[:,i,:] -= 0.1 * utils.get_avg_w()
+                dprint('\U0001F6DE', end='') # steering applied!
+                stag_score[:,i,:] -= 0.1 * utils.calc_avg_w()
         
         # hard to print due to numerically small numbers
         probs = stag_score * self.graph.transp_transition(x, dsigma)  # [batch_size, seq_len, vocab_size]
@@ -157,6 +165,9 @@ def get_pc_sampler(graph, noise, batch_dims, predictor, steps, denoise=True, eps
         
         dt = (1 - eps) / steps
         dprint("dt", dt)
+
+        dprint("org x\n")
+        dprint(x)
 
         for i in range(steps): # predictor
             dprint("=============== Predictor Step", i, "===============")

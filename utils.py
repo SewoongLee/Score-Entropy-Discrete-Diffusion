@@ -71,9 +71,16 @@ def save_checkpoint(ckpt_dir, state):
 
 
 # debug print
+_dprint_enabled = True
+def set_dprint(enable):
+    global _dprint_enabled
+    _dprint_enabled = enable
+
 def dprint(*args, **kwargs):
-    # print(*args, **kwargs)  # Comment this line out not to print
-    pass
+    global _dprint_enabled
+    if _dprint_enabled:
+        print(*args, **kwargs)  # Comment this line out not to print
+        pass
 
 
 import numpy as np
@@ -88,11 +95,12 @@ def save_arr_into_file(file_name=_np_file_name):
 def load_arr_from_file(file_name=_np_file_name):
     return np.load(file_name)
 
-_avg_w = 0.
+_avg_w = None
 def calc_avg_w():
-    _avg_w = load_arr_from_file().mean(axis=0)
-    print("_avg_w:", _avg_w)
-    
-def get_avg_w():
-    return _avg_w
-    
+    global _avg_w
+    if _avg_w is None:
+        _avg_w = load_arr_from_file().mean(axis=0)
+        _avg_w = torch.from_numpy(_avg_w).float().to('cuda')
+        print("[calc_avg_w] calculated and cached")
+    else:
+        return _avg_w

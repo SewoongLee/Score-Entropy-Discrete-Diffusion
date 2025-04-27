@@ -233,14 +233,13 @@ def main():
     
     parser.add_argument("--save_response_path", type=str, default="output_responses.json")
     parser.add_argument("--save_judgments_path", type=str, default="output_judgments.json")
-    parser.add_argument("--n_harmful", type=int, default=-1, help="Limit testing to N examples (-1 = no limit)")
+    parser.add_argument("--n_harmful", type=int, default=1, help="Limit testing to N examples (-1 = no limit)")
     parser.add_argument("--n_benign", type=int, default=0, help="Limit testing to N examples (-1 = no limit)")
     parser.add_argument("--force_regenerate", default=True, action="store_true", help="Force regeneration even if responses file exists")
 
     # parser.add_argument("--split", type=str, default="train")
     parser.add_argument("--split", type=str, default="test")
     
-    parser.add_argument("--init_steering", default=True)
     parser.add_argument("--score_steering", default=True)
     args = parser.parse_args()
         
@@ -251,8 +250,8 @@ def main():
         model, graph, noise = load_model(args.model_path, device)
         
         if args.score_steering:
-            print("score_steeting applied!")
             utils.calc_avg_w()
+            print(f"score_steering applied!")
         
         responses = []
         for datapoint in tqdm(ds, desc='Generating responses'):

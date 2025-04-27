@@ -75,17 +75,14 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    if True:
-    # if False:
-        print("score_steering applied!")
-        utils.calc_avg_w()
+    utils.set_dprint(False)
     
     ppl = calc_ppl(
         model_name="louaaron/sedd-medium",
         
-        # dataset_name="lambada",
+        dataset_name="lambada",
         # dataset_name="wikitext2",
-        dataset_name="ptb",
+        # dataset_name="ptb",
         # dataset_name="wikitext103",
         # dataset_name="lm1b",
         
