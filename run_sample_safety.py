@@ -233,7 +233,7 @@ def main():
     
     parser.add_argument("--save_response_path", type=str, default="output_responses.json")
     parser.add_argument("--save_judgments_path", type=str, default="output_judgments.json")
-    parser.add_argument("--n_harmful", type=int, default=1, help="Limit testing to N examples (-1 = no limit)")
+    parser.add_argument("--n_harmful", type=int, default=-1, help="Limit testing to N examples (-1 = no limit)")
     parser.add_argument("--n_benign", type=int, default=0, help="Limit testing to N examples (-1 = no limit)")
     parser.add_argument("--force_regenerate", default=True, action="store_true", help="Force regeneration even if responses file exists")
 
