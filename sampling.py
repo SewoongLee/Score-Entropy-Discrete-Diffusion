@@ -101,7 +101,7 @@ class AnalyticPredictor(Predictor):
         if self.steering_flag:
             self.steering_flag = False # For one-time x0 steering
             for i in range(stag_score.shape[1]):
-                dprint('\U0001F6DE', end='') # steering applied!
+                dprint('\U0001F6DE ', end='') # steering applied!
                 stag_score[:,i,:] -= 0.1 * utils.calc_avg_w()
         
         # hard to print due to numerically small numbers
